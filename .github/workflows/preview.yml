@@ -14,7 +14,7 @@ permissions:
   id-token: write
 
 jobs:
-  # A real game repo would use fielddaylab/vault-publisher/.github/workflows/unity-build.yml@main here.
+  # A real game repo would use fielddaylab/vault-publisher/.github/workflows/unity-build.yml@v1 here.
   build:
     if: github.event_name != 'delete'
     runs-on: ubuntu-latest
@@ -32,7 +32,7 @@ jobs:
 
   preview:
     needs: build
-    uses: fielddaylab/vault-publisher/.github/workflows/publish-preview.yml@main
+    uses: fielddaylab/vault-publisher/.github/workflows/publish-preview.yml@v1
     with:
       game: publisher-test
       artifact: ${{ needs.build.outputs.artifact }}
@@ -66,6 +66,6 @@ jobs:
 
   remove-preview:
     if: github.event_name == 'delete'
-    uses: fielddaylab/vault-publisher/.github/workflows/publish-preview.yml@main
+    uses: fielddaylab/vault-publisher/.github/workflows/publish-preview.yml@v1
     with:
       game: publisher-test

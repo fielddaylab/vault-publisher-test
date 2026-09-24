@@ -1,0 +1,20 @@
+name: Preview (committed build)
+
+# Stand-in for an older game whose WebGL build is committed to the repo (committed/WebGL here):
+# no build step, publish-preview.yml publishes the folder. One job handles pushes and branch deletes.
+# Published to https://cdn.vaultlearninggames-staging.org/fielddaylab/publisher-test-committed/<branch>/
+on:
+  push:
+  delete:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  preview:
+    uses: fielddaylab/vault-publisher/.github/workflows/publish-preview.yml@v1
+    with:
+      game: publisher-test-committed
+      path: committed/WebGL

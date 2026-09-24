@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vault-publisher test build</title>
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; }
+  li { list-style: none; } code { background: #eee; padding: 0 .25rem; }
+</style>
+<h1>vault-publisher test build</h1>
+<p>Branch <code>committed</code>, commit <code>committ</code>, built 2026-09-24T03:40:28.479Z</p>
+<ul id="results"></ul>
+<p id="summary"></p>
+<script src="Build/test.framework.js.gz"></script>
+<script>
+  const results = document.getElementById('results');
+  const checks = [
+    ['Brotli WebAssembly (Content-Encoding: br, application/wasm)', async () => {
+      const { instance } = await WebAssembly.instantiateStreaming(fetch('Build/test.wasm.br'));
+      return instance.exports.add(2, 3) === 5;
+    }],
+    ['Gzip JavaScript (Content-Encoding: gzip)', async () => window.frameworkLoaded === "vault-publisher-test committ"],
+    ['Gzip data file', async () => (await (await fetch('Build/test.data.gz')).text()) === "vault-publisher-test committ"],
+    ['Unity 2019 .unityweb served raw (gzip bytes, no Content-Encoding)', async () => {
+      const bytes = new Uint8Array(await (await fetch('Build/test.data.unityweb')).arrayBuffer());
+      return bytes[0] === 0x1f && bytes[1] === 0x8b;
+    }],
+    ['build-info.json', async () => (await (await fetch('build-info.json')).json()).sha === "committ"],
+  ];
+  (async () => {
+    let passed = 0;
+    for (const [name, check] of checks) {
+      let ok = false, error = '';
+      try { ok = await check(); } catch (err) { error = ' — ' + err.message; }
+      if (ok) passed++;
+      const li = document.createElement('li');
+      li.textContent = (ok ? '✅ ' : '❌ ') + name + error;
+      results.append(li);
+    }
+    document.getElementById('summary').textContent = passed + ' / ' + checks.length + ' checks passed';
+    document.title = (passed === checks.length ? 'PASS' : 'FAIL') + ' — vault-publisher test build';
+  })();
+</script>
+</html>
