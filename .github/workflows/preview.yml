@@ -1,0 +1,72 @@
+name: Preview
+
+# Simulated build published through vault-publisher. Every push publishes to
+# https://cdn.vaultlearninggames-staging.org/fielddaylab/publisher-test/<branch>/
+# and then checks the CDN serves each file with the right headers. Deleting a branch removes its preview.
+on:
+  push:
+  delete:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PUBLISHER_URL: ${{ vars.VAULT_PUBLISHER_URL || 'https://vault-publisher-3rlcoyes6a-uc.a.run.app' }}
+
+jobs:
+  publish:
+    if: github.event_name != 'delete'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: preview-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Simulate a Unity WebGL build
+        run: node simulate-build.mjs build
+
+      - name: Publish preview
+        id: publish
+        uses: fielddaylab/vault-publisher/action@main
+        with:
+          game: publisher-test
+          path: build
+          publisher-url: ${{ env.PUBLISHER_URL }}
+
+      - name: Check the CDN serves it correctly
+        env:
+          URL: ${{ steps.publish.outputs.url }}
+        run: |
+          set -euo pipefail
+          # ?v= skips any copy the edge cached from a previous push (cache key includes the query string).
+          q="?v=${GITHUB_SHA}"
+          header() { curl -fsS -H 'Accept-Encoding: br, gzip' -o /dev/null -D - "$URL$1$q" | tr -d '\r' | grep -i "^$2:" | cut -d' ' -f2- || true; }
+          expect() {
+            local got; got=$(header "$1" "$2")
+            if [ "$got" = "$3" ]; then echo "✅ $1 $2: $got"; else echo "❌ $1 $2: expected '$3', got '$got'"; fail=1; fi
+          }
+          fail=0
+          if curl -fsS "$URL$q" | grep -q "${GITHUB_SHA:0:7}"; then echo "✅ folder URL serves this commit's index.html"; else echo "❌ folder URL"; fail=1; fi
+          expect "" x-robots-tag "noindex, nofollow"
+          expect "Build/test.wasm.br" content-type "application/wasm"
+          expect "Build/test.wasm.br" content-encoding "br"
+          expect "Build/test.framework.js.gz" content-type "text/javascript; charset=utf-8"
+          expect "Build/test.framework.js.gz" content-encoding "gzip"
+          expect "Build/test.data.unityweb" content-encoding ""
+          echo "Open $URL in a browser for the in-page checks."
+          exit $fail
+
+  delete:
+    if: github.event_name == 'delete'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete preview
+        uses: fielddaylab/vault-publisher/action@main
+        with:
+          game: publisher-test
+          mode: delete
+          ref: ${{ github.event.ref }}
+          publisher-url: ${{ env.PUBLISHER_URL }}
