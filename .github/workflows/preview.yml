@@ -13,7 +13,7 @@ permissions:
   id-token: write
 
 env:
-  PUBLISHER_URL: ${{ vars.VAULT_PUBLISHER_URL || 'https://vault-publisher-3rlcoyes6a-uc.a.run.app' }}
+  PUBLISHER_URL: ${{ vars.VAULT_PUBLISHER_URL }}
 
 jobs:
   publish:
