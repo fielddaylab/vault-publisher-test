@@ -1,8 +1,9 @@
 name: Preview
 
-# Simulated build published through vault-publisher. Every push publishes to
-# https://cdn.vaultlearninggames-staging.org/fielddaylab/publisher-test/<branch>/
-# and then checks the CDN serves each file with the right headers. Deleting a branch removes its preview.
+# Stand-in for a game repo using the split reusable workflows: a (simulated) build job uploads an
+# artifact, fielddaylab/vault-publisher's publish-preview.yml publishes it to
+# https://cdn.vaultlearninggames-staging.org/fielddaylab/publisher-test/<branch>/ , then `verify` checks the
+# CDN's headers. Deleting a branch removes its preview.
 on:
   push:
   delete:
@@ -12,33 +13,37 @@ permissions:
   contents: read
   id-token: write
 
-env:
-  PUBLISHER_URL: ${{ vars.VAULT_PUBLISHER_URL }}
-
 jobs:
-  publish:
+  # A real game repo would use fielddaylab/vault-publisher/.github/workflows/unity-build.yml@main here.
+  build:
     if: github.event_name != 'delete'
     runs-on: ubuntu-latest
-    concurrency:
-      group: preview-${{ github.ref }}
-      cancel-in-progress: true
+    outputs:
+      artifact: webgl-${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
-
       - name: Simulate a Unity WebGL build
         run: node simulate-build.mjs build
-
-      - name: Publish preview
-        id: publish
-        uses: fielddaylab/vault-publisher/action@main
+      - uses: actions/upload-artifact@v4
         with:
-          game: publisher-test
+          name: webgl-${{ github.sha }}
           path: build
-          publisher-url: ${{ env.PUBLISHER_URL }}
+          retention-days: 3
 
+  preview:
+    needs: build
+    uses: fielddaylab/vault-publisher/.github/workflows/publish-preview.yml@main
+    with:
+      game: publisher-test
+      artifact: ${{ needs.build.outputs.artifact }}
+
+  verify:
+    needs: preview
+    runs-on: ubuntu-latest
+    steps:
       - name: Check the CDN serves it correctly
         env:
-          URL: ${{ steps.publish.outputs.url }}
+          URL: ${{ needs.preview.outputs.url }}
         run: |
           set -euo pipefail
           # ?v= skips any copy the edge cached from a previous push (cache key includes the query string).
@@ -59,14 +64,8 @@ jobs:
           echo "Open $URL in a browser for the in-page checks."
           exit $fail
 
-  delete:
+  remove-preview:
     if: github.event_name == 'delete'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Delete preview
-        uses: fielddaylab/vault-publisher/action@main
-        with:
-          game: publisher-test
-          mode: delete
-          ref: ${{ github.event.ref }}
-          publisher-url: ${{ env.PUBLISHER_URL }}
+    uses: fielddaylab/vault-publisher/.github/workflows/publish-preview.yml@main
+    with:
+      game: publisher-test
