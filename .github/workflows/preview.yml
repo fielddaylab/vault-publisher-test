@@ -1,7 +1,7 @@
 name: Preview
 
 # Stand-in for a game repo using the split reusable workflows: a (simulated) build job uploads an
-# artifact, fielddaylab/vault-publisher's publish-preview.yml publishes it to
+# artifact, VaultLearningGames/vault-publisher's publish-preview.yml publishes it to
 # https://cdn.vaultlearninggames-staging.org/fielddaylab/publisher-test/<branch>/ , then `verify` checks the
 # CDN's headers. Deleting a branch removes its preview.
 on:
@@ -14,7 +14,7 @@ permissions:
   id-token: write
 
 jobs:
-  # A real game repo would use fielddaylab/vault-publisher/.github/workflows/unity-build.yml@v1 here.
+  # A real game repo would use VaultLearningGames/vault-publisher/.github/workflows/unity-build.yml@v1 here.
   build:
     if: github.event_name != 'delete'
     runs-on: ubuntu-latest
@@ -32,7 +32,7 @@ jobs:
 
   preview:
     needs: build
-    uses: fielddaylab/vault-publisher/.github/workflows/publish-preview.yml@v1
+    uses: VaultLearningGames/vault-publisher/.github/workflows/publish-preview.yml@v1
     with:
       game: publisher-test
       artifact: ${{ needs.build.outputs.artifact }}
@@ -66,6 +66,6 @@ jobs:
 
   remove-preview:
     if: github.event_name == 'delete'
-    uses: fielddaylab/vault-publisher/.github/workflows/publish-preview.yml@v1
+    uses: VaultLearningGames/vault-publisher/.github/workflows/publish-preview.yml@v1
     with:
       game: publisher-test

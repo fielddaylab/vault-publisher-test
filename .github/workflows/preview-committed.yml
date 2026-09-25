@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   preview:
-    uses: fielddaylab/vault-publisher/.github/workflows/publish-preview.yml@v1
+    uses: VaultLearningGames/vault-publisher/.github/workflows/publish-preview.yml@v1
     with:
       game: publisher-test-committed
       path: committed/WebGL
